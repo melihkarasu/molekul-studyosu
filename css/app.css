@@ -1,0 +1,8 @@
+.mol-canvas-container {
+          position: relative;
+          width: 100%;
+          height: 440px;
+          border-radius: 1.5rem;
+          overflow: hidden;
+          background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+        }
