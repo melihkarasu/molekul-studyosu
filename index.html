@@ -3,39 +3,211 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>3D Molekül Stüdyosu - Standalone</title>
+  <title>3D Kimyasal Molekül Stüdyosu</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230d9488' stroke='%2344403c' stroke-width='1.5'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='%23ffffff' font-family='-apple-system,BlinkMacSystemFont,Inter,sans-serif' font-weight='800' font-size='13' letter-spacing='-0.5'%3EMK%3C/text%3E%3C/svg%3E">
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231c1917' stroke='%2344403c' stroke-width='1.5'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='%23ffffff' font-family='-apple-system,BlinkMacSystemFont,Inter,sans-serif' font-weight='800' font-size='13' letter-spacing='-0.5'%3EMK%3C/text%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/style.css">
-  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.4.2/3Dmol-min.js"></script>
+  <link rel="stylesheet" href="css/app.css">
   <style>
-    :root { --mistral-ink: #1c1917; --mistral-slate: #78716c; --mistral-stone: #a8a29e; --mistral-hairline: #e7e5e4; --mistral-cream: #f5f5f4; --mistral-beige-deep: #d6d3d1; }
-    body { font-family: 'Inter', sans-serif; background-color: #fafaf9; color: var(--mistral-ink); }
-    h1, h2, .font-editorial { font-family: 'Newsreader', serif; }
-    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    :root {
+      --mistral-ink: #1c1917;
+      --mistral-slate: #78716c;
+      --mistral-stone: #a8a29e;
+      --mistral-hairline: #e7e5e4;
+      --mistral-cream: #f5f5f4;
+      --mistral-cream-deeper: #e7e5e4;
+      --mistral-cream-light: #fafaf9;
+      --mistral-beige-deep: #d6d3d1;
+      --mistral-orange: #fa520f;
+      --mistral-orange-deep: #e04400;
+      --mistral-canvas: #0f172a;
+    }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #fafaf9;
+      color: var(--mistral-ink);
+    }
+    h1, h2, h3, .font-editorial {
+      font-family: 'Newsreader', serif;
+    }
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .bg-mistral-cream { background-color: var(--mistral-cream); }
+    .bg-mistral-cream-light { background-color: var(--mistral-cream-light); }
+    .bg-mistral-cream-deeper { background-color: var(--mistral-cream-deeper); }
     .text-mistral-ink { color: var(--mistral-ink); }
     .text-mistral-slate { color: var(--mistral-slate); }
     .text-mistral-stone { color: var(--mistral-stone); }
-    .bg-mistral-cream { background-color: var(--mistral-cream); }
+    .text-mistral-orange { color: var(--mistral-orange); }
     .border-mistral-hairline { border-color: var(--mistral-hairline); }
-    .bg-mistral-canvas { background-color: #0f172a; }
+    .border-mistral-beige-deep { border-color: var(--mistral-beige-deep); }
+    .border-mistral-orange { border-color: var(--mistral-orange); }
   </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-4 sm:p-8">
   <div class="max-w-6xl mx-auto">
-    <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-      <div>
-        <div class="flex items-center gap-3">
-          <a href="https://github.com/melihkarasu" target="_blank" class="text-mistral-slate hover:text-teal-500 transition text-sm flex items-center gap-1">&larr; GitHub Profiline Dön</a>
-          <span class="text-mistral-stone">|</span>
-          <span class="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-600 text-xs font-semibold">Open Source Edition</span>
+    const content = `
+      <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-3">
+            <a href="/" class="text-mistral-slate hover:text-white transition text-sm flex items-center gap-1">
+              &larr; Vitrine Dön
+            </a>
+            <span class="text-mistral-stone">|</span>
+            <span class="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-400 text-xs font-semibold">Yeni Seri #8</span>
+          </div>
+          <h1 class="text-3xl font-extrabold tracking-tight mt-1 text-mistral-ink flex items-center gap-2">
+            <span>🧬</span> 3D Kimyasal Molekül Stüdyosu
+          </h1>
+          <p class="text-mistral-slate text-sm mt-0.5">
+            PubChem 3D Conformer & 3Dmol.js WebGL motoru ile kimyasalların, ilaç etken maddelerinin 3 boyutlu atomik modellemesi.
+          </p>
         </div>
-        <h1 class="text-3xl sm:text-4xl font-normal font-editorial tracking-tight mt-1.5 text-mistral-ink flex items-center gap-2"><span>🧬</span> 3D Molekül Stüdyosu</h1>
+
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-mistral-hairline text-xs text-mistral-slate">
+          <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+          <span>PubChem 3D Conformer & WebGL</span>
+        </div>
       </div>
-    </div>
-    
+
+      <!-- 1. 3D WEBGL MOLEKÜL SAHNESİ VE KONTROL MERKEZİ -->
+      <div class="p-6 sm:p-8 rounded-3xl bg-white border border-mistral-hairline shadow-2xl mb-8 space-y-6">
+        
+        <!-- Üst: Aktif Molekül Bilgisi ve Araç Çubuğu -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span id="mol-badge-formula" class="px-2.5 py-0.5 rounded-lg bg-teal-500/20 text-teal-300 font-mono font-bold text-xs">C8H10N4O2</span>
+              <span id="mol-badge-weight" class="text-xs text-mistral-slate font-mono">194.19 g/mol</span>
+            </div>
+            <h2 id="mol-display-name" class="text-2xl sm:text-3xl font-black text-mistral-ink">Kafein (Caffeine)</h2>
+            <p id="mol-display-iupac" class="text-xs text-teal-400 font-mono truncate max-w-md sm:max-w-xl mt-0.5">1,3,7-trimethylpurine-2,6-dione</p>
+          </div>
+
+          <!-- 3D Render Stili Seçici & Döndürme -->
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <div class="flex p-1 rounded-xl bg-white border border-mistral-hairline text-xs">
+              <button onclick="setRenderStyle('ballAndStick')" id="btn-st-ballAndStick" class="style-btn px-3 py-1 rounded-lg font-bold bg-teal-500 text-slate-950 transition shadow">Top & Çubuk</button>
+              <button onclick="setRenderStyle('sphere')" id="btn-st-sphere" class="style-btn px-3 py-1 rounded-lg font-bold text-mistral-slate hover:text-white transition">Hacim Küresi</button>
+              <button onclick="setRenderStyle('stick')" id="btn-st-stick" class="style-btn px-3 py-1 rounded-lg font-bold text-mistral-slate hover:text-white transition">Çubuklar</button>
+              <button onclick="setRenderStyle('wireframe')" id="btn-st-wireframe" class="style-btn px-3 py-1 rounded-lg font-bold text-mistral-slate hover:text-white transition">Tel Kafes</button>
+            </div>
+
+            <button onclick="toggleSpin()" id="btn-spin" class="px-3 py-1.5 rounded-xl bg-white hover:bg-mistral-cream border border-mistral-hairline text-xs font-bold text-teal-300 transition flex items-center gap-1.5 shadow">
+              <span>🔄</span> <span id="label-spin">Döndür: Açık</span>
+            </button>
+            <button onclick="resetCamera()" class="px-3 py-1.5 rounded-xl bg-white hover:bg-mistral-cream border border-mistral-hairline text-xs font-bold text-mistral-slate transition" title="Kamerayı Sıfırla">
+              Merkeze Al
+            </button>
+          </div>
+        </div>
+
+        <!-- 3D WebGL Tuvali (Canvas) -->
+        <div class="relative mol-canvas-container border border-mistral-hairline shadow-inner flex items-center justify-center">
+          <div id="g3d-viewport" class="w-full h-full"></div>
+
+          <!-- Yükleniyor Göstergesi -->
+          <div id="mol-loading" class="hidden absolute inset-0 bg-mistral-canvas backdrop-blur-sm flex flex-col items-center justify-center gap-3 text-mistral-slate text-xs z-20">
+            <div class="w-8 h-8 rounded-full border-2 border-teal-400 border-t-transparent animate-spin"></div>
+            <span id="mol-loading-msg">3D Moleküler koordinatlar yükleniyor...</span>
+          </div>
+
+          <!-- Sol Alt Kontrol İpucu -->
+          <div class="absolute bottom-4 left-4 pointer-events-none bg-mistral-canvas backdrop-blur-md px-3 py-1.5 rounded-xl text-[11px] text-mistral-slate border border-mistral-hairline">
+            🖱️ Sol Tık: Döndür • Tekerlek: Yakınlaş • Sağ Tık: Kaydır
+          </div>
+
+          <!-- Sağ Üst Favorileme Butonu -->
+          <button onclick="toggleSaveMolecule()" id="btn-save-mol" class="absolute top-4 right-4 z-10 px-3 py-1.5 rounded-xl bg-white hover:bg-white border border-mistral-hairline text-xs font-bold text-mistral-ink transition flex items-center gap-1.5 backdrop-blur-md shadow">
+            <span id="star-icon">🔖</span> <span id="label-save-mol">Laboratuvarıma Kaydet</span>
+          </button>
+        </div>
+
+        <!-- Molekül Özellikleri Tablosu -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-2">
+          <div class="p-3.5 rounded-2xl bg-white border border-mistral-hairline text-center">
+            <span class="text-[10px] text-mistral-slate uppercase font-semibold">Moleküler Formül</span>
+            <div id="stat-formula" class="text-base font-black text-teal-400 font-mono mt-0.5">C8H10N4O2</div>
+          </div>
+          <div class="p-3.5 rounded-2xl bg-white border border-mistral-hairline text-center">
+            <span class="text-[10px] text-mistral-slate uppercase font-semibold">Molekül Ağırlığı</span>
+            <div id="stat-weight" class="text-base font-black text-white font-mono mt-0.5">194.19 g/mol</div>
+          </div>
+          <div class="p-3.5 rounded-2xl bg-white border border-mistral-hairline text-center">
+            <span class="text-[10px] text-mistral-slate uppercase font-semibold">Toplam Atom Sayısı</span>
+            <div id="stat-atoms" class="text-base font-black text-blue-400 font-mono mt-0.5">24 Atom</div>
+          </div>
+          <div class="p-3.5 rounded-2xl bg-white border border-mistral-hairline text-center">
+            <span class="text-[10px] text-mistral-slate uppercase font-semibold">PubChem CID</span>
+            <div id="stat-cid" class="text-base font-black text-purple-400 font-mono mt-0.5">2519</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 2. ARAMA VE POPÜLER MOLEKÜLLER -->
+      <div class="p-6 rounded-3xl bg-white border border-mistral-hairline shadow-xl mb-8 space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-mistral-slate mb-1.5">
+            Bileşik, İlaç Etken Maddesi veya Molekül Arayın
+          </label>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+              <input type="text" id="input-mol-search" placeholder="Örn: Aspirin, Ibuprofen, Paracetamol, Dopamine, Serotonin, Nicotine, Glucose..." onkeyup="if(event.key==='Enter') searchMolecule()" class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-mistral-hairline text-sm text-mistral-ink placeholder-slate-500 focus:border-teal-400 focus:outline-none font-mono">
+              <span class="absolute left-3.5 top-3 text-mistral-stone text-sm">🧪</span>
+            </div>
+            <button onclick="searchMolecule()" class="px-6 py-2.5 rounded-xl text-mistral-ink font-boldbg-mistral-cream-light hover:bg-mistral-cream-deeper text-mistral-ink font-bold font-bold text-xs transition shrink-0">
+              Molekülü Getir
+            </button>
+          </div>
+        </div>
+
+        <!-- Hızlı Popüler Moleküller -->
+        <div class="flex flex-wrap items-center gap-1.5 text-xs pt-1">
+          <span class="text-mistral-stone text-[11px] mr-1">Seçkin Moleküller:</span>
+          <button onclick="loadPresetMolecule('caffeine', 'Kafein', 'C8H10N4O2')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-mistral-cream border border-mistral-hairline text-mistral-slate transition">☕ Kafein</button>
+          <button onclick="loadPresetMolecule('aspirin', 'Aspirin', 'C9H8O4')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-mistral-cream border border-mistral-hairline text-mistral-slate transition">💊 Aspirin</button>
+          <button onclick="loadPresetMolecule('acetaminophen', 'Parasetamol', 'C8H9NO2')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-mistral-cream border border-mistral-hairline text-mistral-slate transition">💊 Parasetamol</button>
+          <button onclick="loadPresetMolecule('dopamine', 'Dopamin', 'C8H11NO2')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-mistral-cream border border-mistral-hairline text-mistral-slate transition">🧠 Dopamin</button>
+          <button onclick="loadPresetMolecule('serotonin', 'Serotonin', 'C10H12N2O')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-mistral-cream border border-mistral-hairline text-mistral-slate transition">☀️ Serotonin</button>
+          <button onclick="loadPresetMolecule('epinephrine', 'Adrenalin', 'C9H13NO3')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-mistral-cream border border-mistral-hairline text-mistral-slate transition">⚡ Adrenalin</button>
+          <button onclick="loadPresetMolecule('penicillin', 'Penisilin', 'C16H18N2O4S')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-mistral-cream border border-mistral-hairline text-mistral-slate transition">🧪 Penisilin</button>
+          <button onclick="loadPresetMolecule('water', 'Su', 'H2O')" class="px-2.5 py-1 rounded-lg bg-white hover:bg-mistral-cream border border-mistral-hairline text-mistral-slate transition">💧 Su</button>
+        </div>
+      </div>
+
+      <!-- 3. KİŞİSEL MOLEKÜL LABORATUVARIM (MY LAB SHELF) -->
+      <div class="mt-14 pt-8 border-t border-mistral-hairline space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-bold text-mistral-ink flex items-center gap-2">
+              <span>🔬</span> Kişisel Molekül Laboratuvarım
+            </h3>
+            <p class="text-mistral-slate text-xs">Kaydettiğiniz kimyasal bileşikler ve 3D modelleri.</p>
+          </div>
+          <button onclick="clearSavedMolecules()" class="text-xs text-rose-400 hover:underline">Laboratuvarı Temizle</button>
+        </div>
+
+        <div id="mol-shelf-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+          <!-- JS ile doldurulur -->
+        </div>
+        <div id="mol-shelf-empty" class="p-8 text-center rounded-2xl bg-white border border-mistral-hairline text-mistral-stone text-xs">
+          Henüz laboratuvarınıza bir molekül kaydetmediniz. Yukarıdaki 🔖 simgesine tıklayarak favorilerinizi buraya ekleyebilirsiniz.
+        </div>
+      </div>
+
+      <!-- Toast Bildirimi -->
+      <div id="mol-toast" class="hidden fixed bottom-6 right-6 py-2.5 px-4 rounded-xl bg-teal-500 text-slate-950 font-black text-xs shadow-2xl transition z-50"></div>
+
+      <!-- İstemci Mantığı & 3Dmol.js WebGL Motoru -->
   </div>
+
+  <footer class="mt-16 text-center text-xs text-mistral-stone border-t border-mistral-hairline pt-6">
+    <p>Açık Kaynak Standalone Sürüm • Veriler: <a href="https://pubchem.ncbi.nlm.nih.gov/" target="_blank" rel="noopener" class="underline hover:text-mistral-ink">PubChem API</a> • Motor: <a href="https://3dmol.csb.pitt.edu/" target="_blank" rel="noopener" class="underline hover:text-mistral-ink">3Dmol.js</a> • <a href="https://github.com/public-apis/public-apis" target="_blank" rel="noopener" class="underline hover:text-mistral-ink">Public APIs</a></p>
+  </footer>
+
+  <script src="js/app.js"></script>
 </body>
 </html>
