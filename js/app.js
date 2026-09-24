@@ -1,3 +1,4 @@
+// Standalone Molekül Stüdyosu Mantığı
 const STORAGE_KEY = 'molekul_study_lab_v1';
 let glViewer = null;
 let activeModel = null;
@@ -8,7 +9,7 @@ let currentMolInfo = {
   name: 'Caffeine',
   trName: 'Kafein',
   formula: 'C8H10N4O2',
-  weight: '194.19',
+  weight: '194.19 g/mol',
   iupac: '1,3,7-trimethylpurine-2,6-dione',
   cid: 2519
 };
@@ -25,38 +26,47 @@ function init3DmolViewer() {
 
 // 2. Molekül Verisi Çek ve Yükle (Doğrudan PubChem API)
 async function loadMolecule(name, trName = '') {
-  showLoading(true, `"${name}" 3D koordinatları PubChem'den çekiliyor...`);
+  showLoading(true, `"${trName || name}" 3D koordinatları PubChem'den çekiliyor...`);
 
   try {
-    const encoded = encodeURIComponent(name);
-    // PubChem'den özellikler ve 3D SDF'i paralel çek
+    const cleanName = (name || '').trim();
+    if (!cleanName) throw new Error('Geçersiz molekül adı');
+
+    const encoded = encodeURIComponent(cleanName);
+
+    // Tarayıcı fetch kuralları gereği User-Agent başlığı gönderilmez (Forbidden Header).
+    // Doğrudan PubChem açık API'sine CORS üzerinden erişim:
+    const propUrl = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encoded}/property/MolecularFormula,MolecularWeight,IUPACName,CanonicalSMILES/JSON`;
+    const sdfUrl = `https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encoded}/SDF?record_type=3d`;
+
     const [propRes, sdfRes] = await Promise.all([
-      fetch(`https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encoded}/property/MolecularFormula,MolecularWeight,IUPACName,CanonicalSMILES/JSON`, {
-        headers: { 'User-Agent': 'MolekulStudyosu/1.0' },
-        signal: AbortSignal.timeout(8000)
-      }),
-      fetch(`https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/${encoded}/SDF?record_type=3d`, {
-        headers: { 'User-Agent': 'MolekulStudyosu/1.0' },
-        signal: AbortSignal.timeout(8000)
-      })
+      fetch(propUrl),
+      fetch(sdfUrl)
     ]);
 
-    if (!propRes.ok || !sdfRes.ok) {
-      throw new Error('Molekül 3D verisi PubChem arşivinde bulunamadı');
+    if (!sdfRes.ok) {
+      throw new Error(`PubChem'de "${cleanName}" için 3D koordinat bulunamadı (HTTP ${sdfRes.status})`);
     }
 
-    const propData = await propRes.json();
     const sdfText = await sdfRes.text();
+    let propData = {};
+    if (propRes.ok) {
+      try {
+        propData = await propRes.json();
+      } catch (e) {
+        console.warn('Property JSON parse error:', e);
+      }
+    }
 
     const p = propData.PropertyTable?.Properties?.[0] || {};
 
     currentSdfData = sdfText;
     currentMolInfo = {
-      name: name,
-      trName: trName || name,
+      name: cleanName,
+      trName: trName || cleanName,
       formula: p.MolecularFormula || 'Bileşik',
       weight: p.MolecularWeight ? p.MolecularWeight + ' g/mol' : '-',
-      iupac: p.IUPACName || name,
+      iupac: p.IUPACName || cleanName,
       cid: p.CID || '-'
     };
 
@@ -64,6 +74,7 @@ async function loadMolecule(name, trName = '') {
     renderModelInViewer(sdfText);
     updateSaveButtonState();
   } catch(err) {
+    console.error('loadMolecule error:', err);
     showToast('Molekül yüklenemedi: ' + err.message);
   } finally {
     showLoading(false);
@@ -116,6 +127,7 @@ function setRenderStyle(style) {
   currentStyle = style;
   ['ballAndStick', 'sphere', 'stick', 'wireframe'].forEach(s => {
     const btn = document.getElementById('btn-st-' + s);
+    if (!btn) return;
     if (s === style) {
       btn.className = 'style-btn px-3 py-1 rounded-lg font-bold bg-teal-500 text-slate-950 transition shadow';
     } else {
@@ -132,10 +144,10 @@ function toggleSpin() {
 
   if (isSpinning) {
     glViewer.spin('y', 1.0);
-    label.innerText = 'Döndür: Açık';
+    if (label) label.innerText = 'Döndür: Açık';
   } else {
     glViewer.spin(false);
-    label.innerText = 'Döndür: Kapalı';
+    if (label) label.innerText = 'Döndür: Kapalı';
   }
 }
 
@@ -147,13 +159,22 @@ function resetCamera() {
 
 // 3. Bilgi Kartlarını Güncelle
 function updateInfoCard() {
-  document.getElementById('mol-display-name').innerText = currentMolInfo.trName || currentMolInfo.name;
-  document.getElementById('mol-display-iupac').innerText = currentMolInfo.iupac;
-  document.getElementById('mol-badge-formula').innerText = currentMolInfo.formula;
-  document.getElementById('mol-badge-weight').innerText = currentMolInfo.weight;
-  document.getElementById('stat-formula').innerText = currentMolInfo.formula;
-  document.getElementById('stat-weight').innerText = currentMolInfo.weight;
-  document.getElementById('stat-cid').innerText = currentMolInfo.cid;
+  const elDisplayName = document.getElementById('mol-display-name');
+  const elDisplayIupac = document.getElementById('mol-display-iupac');
+  const elBadgeFormula = document.getElementById('mol-badge-formula');
+  const elBadgeWeight = document.getElementById('mol-badge-weight');
+  const elStatFormula = document.getElementById('stat-formula');
+  const elStatWeight = document.getElementById('stat-weight');
+  const elStatCid = document.getElementById('stat-cid');
+  const elStatAtoms = document.getElementById('stat-atoms');
+
+  if (elDisplayName) elDisplayName.innerText = currentMolInfo.trName || currentMolInfo.name;
+  if (elDisplayIupac) elDisplayIupac.innerText = currentMolInfo.iupac;
+  if (elBadgeFormula) elBadgeFormula.innerText = currentMolInfo.formula;
+  if (elBadgeWeight) elBadgeWeight.innerText = currentMolInfo.weight;
+  if (elStatFormula) elStatFormula.innerText = currentMolInfo.formula;
+  if (elStatWeight) elStatWeight.innerText = currentMolInfo.weight;
+  if (elStatCid) elStatCid.innerText = currentMolInfo.cid;
 
   // Atom sayısını SDF'den kabaca hesapla
   const lines = currentSdfData.split('\n');
@@ -162,16 +183,18 @@ function updateInfoCard() {
     const countsLine = lines[3].trim().split(/\s+/);
     atomCount = parseInt(countsLine[0]) || 0;
   }
-  document.getElementById('stat-atoms').innerText = atomCount > 0 ? (atomCount + ' Atom') : '3D Koordinat';
+  if (elStatAtoms) elStatAtoms.innerText = atomCount > 0 ? (atomCount + ' Atom') : '3D Model';
 }
 
 function loadPresetMolecule(engName, trName, formula) {
-  document.getElementById('input-mol-search').value = engName;
+  const input = document.getElementById('input-mol-search');
+  if (input) input.value = engName;
   loadMolecule(engName, trName);
 }
 
 function searchMolecule() {
-  const q = document.getElementById('input-mol-search').value.trim();
+  const input = document.getElementById('input-mol-search');
+  const q = (input ? input.value : '').trim();
   if (!q) return;
   loadMolecule(q, q);
 }
@@ -179,9 +202,10 @@ function searchMolecule() {
 function showLoading(show, msg = '') {
   const box = document.getElementById('mol-loading');
   const txt = document.getElementById('mol-loading-msg');
+  if (!box) return;
   if (show) {
     box.classList.remove('hidden');
-    if (msg) txt.innerText = msg;
+    if (msg && txt) txt.innerText = msg;
   } else {
     box.classList.add('hidden');
   }
@@ -243,27 +267,28 @@ function updateSaveButtonState() {
 function renderShelf() {
   const grid = document.getElementById('mol-shelf-grid');
   const empty = document.getElementById('mol-shelf-empty');
+  if (!grid) return;
   const list = getSavedMolecules();
 
   if (list.length === 0) {
     grid.innerHTML = '';
-    empty.classList.remove('hidden');
+    if (empty) empty.classList.remove('hidden');
     return;
   }
 
-  empty.classList.add('hidden');
+  if (empty) empty.classList.add('hidden');
   grid.innerHTML = list.map(m => {
     const mName = String(m.name || m.trName || '').replace(/'/g, "\\'");
     const mTr = String(m.trName || m.name || '').replace(/'/g, "\\'");
     return `
-      <div class="p-3 rounded-xl bg-white border border-mistral-hairline hover:border-mistral-orange/40 transition cursor-pointer flex flex-col justify-between" onclick="loadMolecule('${mName}', '${mTr}')">
+      <div class="p-3 rounded-xl bg-white border border-mistral-hairline hover:border-teal-500/50 transition cursor-pointer flex flex-col justify-between" onclick="loadMolecule('${mName}', '${mTr}')">
         <div>
           <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-mistral-cream text-mistral-ink border border-mistral-beige-deep">${m.formula || '3D'}</span>
-          <h4 class="font-bold text-xs text-mistral-ink truncate mt-2 hover:text-mistral-orange">${m.trName || m.name}</h4>
+          <h4 class="font-bold text-xs text-mistral-ink truncate mt-2 hover:text-teal-600">${m.trName || m.name}</h4>
           <p class="text-[10px] text-mistral-slate font-mono mt-0.5">CID: ${m.cid || '-'}</p>
         </div>
-        <div class="pt-2 border-t border-mistral-hairline-soft flex items-center justify-between mt-2.5 text-xs">
-          <span class="text-mistral-orange font-bold text-[10px]">3D Aç &rarr;</span>
+        <div class="pt-2 border-t border-mistral-hairline flex items-center justify-between mt-2.5 text-xs">
+          <span class="text-teal-600 font-bold text-[10px]">3D Aç &rarr;</span>
           <button onclick="event.stopPropagation(); removeMolecule('${mName}')" class="text-mistral-slate hover:text-rose-500 text-xs">✕</button>
         </div>
       </div>
@@ -292,9 +317,10 @@ function clearSavedMolecules() {
 
 function showToast(msg) {
   const toast = document.getElementById('mol-toast');
+  if (!toast) return;
   toast.innerText = msg;
   toast.classList.remove('hidden');
-  setTimeout(() => toast.classList.add('hidden'), 3000);
+  setTimeout(() => toast.classList.add('hidden'), 3500);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -311,3 +337,5 @@ window.loadPresetMolecule = loadPresetMolecule;
 window.searchMolecule = searchMolecule;
 window.toggleSaveMolecule = toggleSaveMolecule;
 window.clearSavedMolecules = clearSavedMolecules;
+window.removeMolecule = removeMolecule;
+window.loadMolecule = loadMolecule;
