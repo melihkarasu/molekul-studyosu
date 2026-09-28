@@ -9,7 +9,7 @@ PubChem 3D Conformer ve 3Dmol.js WebGL motoruyla kimyasalların ve ilaçların 3
 
 ## 🚀 Hızlı Başlangıç
 1. Bu repoyu klonlayın.
-2.  dosyasını tarayıcıda açın.
+2. `index.html` dosyasını tarayıcıda açın.
 
 
 
